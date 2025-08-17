@@ -51,6 +51,25 @@ func decodeStrInt(bencodedString string) (interface{}, int, error) {
 	}
 }
 
+//this function decodes bencoded list
+//i would need to implementy a recurssive solution for nested structures
+func decodeList(bencodedString string) (interface{}, int, error) {
+	i := 1
+	res := make([]interface{}, 0)
+	for i < len(bencodedString) {
+		if unicode.IsDigit(rune(bencodedString[i])) || bencodedString[i] == 'i' {
+			curr, next, err := decodeStrInt(bencodedString[i:])
+			if err != nil {
+				fmt.Println(err)
+			}
+			res = append(res, curr)
+			i = next
+		}
+	}
+
+	return res, i + 1, nil
+}
+
 func main() {
 	command := os.Args[1]
 
@@ -59,6 +78,14 @@ func main() {
 
 		if unicode.IsDigit(rune(bencodedValue[0])) || bencodedValue[0] == 'i' {
 			decoded, _, err := decodeStrInt(bencodedValue)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			jsonOutput, _ := json.Marshal(decoded)
+			fmt.Println(string(jsonOutput))
+		} else if bencodedValue[0] == 'l' {
+			decoded, _, err := decodeList(bencodedValue)
 			if err != nil {
 				fmt.Println(err)
 				return
