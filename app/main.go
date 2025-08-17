@@ -12,10 +12,8 @@ import (
 // Ensures gofmt doesn't remove the "os" encoding/json import (feel free to remove this!)
 var _ = json.Marshal
 
-// this func does the following:
-// - 5:hello -> hello
-// - 10:hello12345 -> hello12345
-func decodeBencode(bencodedString string) (interface{}, error) {
+//this func decodes strings and int
+func decodeStrInt(bencodedString string) (interface{}, int, error) {
 	if unicode.IsDigit(rune(bencodedString[0])) {
 		var firstColonIndex int
 
@@ -30,11 +28,11 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 
 		length, err := strconv.Atoi(lengthStr)
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
 
-		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
-	} else if bencodedString[0] == 'i' {
+		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], firstColonIndex+1+length, nil
+	} else { // if bencodedString[0] == 'i'
 		var end int
 
 		for i := 1; i < len(bencodedString); i ++ {
@@ -46,12 +44,10 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 
 		res, err := strconv.Atoi(bencodedString[1:end])
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
 
-		return res, nil
-	} else {
-		return "", fmt.Errorf("Only strings are supported at the moment")
+		return res, end + 1, nil
 	}
 }
 
@@ -61,14 +57,15 @@ func main() {
 	if command == "decode" {
 		bencodedValue := os.Args[2]
 
-		decoded, err := decodeBencode(bencodedValue)
-		if err != nil {
-			fmt.Println(err)
-			return
+		if unicode.IsDigit(rune(bencodedValue[0])) || bencodedValue[0] == 'i' {
+			decoded, _, err := decodeStrInt(bencodedValue)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			jsonOutput, _ := json.Marshal(decoded)
+			fmt.Println(string(jsonOutput))
 		}
-
-		jsonOutput, _ := json.Marshal(decoded)
-		fmt.Println(string(jsonOutput))
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
