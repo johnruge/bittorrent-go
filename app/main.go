@@ -35,7 +35,7 @@ func decodeStrInt(bencodedString string) (interface{}, int, error) {
 	} else { // if bencodedString[0] == 'i'
 		var end int
 
-		for i := 1; i < len(bencodedString); i ++ {
+		for i := 1; i < len(bencodedString); i++ {
 			if bencodedString[i] == 'e' {
 				end = i
 				break
@@ -52,7 +52,6 @@ func decodeStrInt(bencodedString string) (interface{}, int, error) {
 }
 
 //this function decodes bencoded list
-//i would need to implementy a recurssive solution for nested structures
 func decodeList(bencodedString string) (interface{}, int, error) {
 	i := 1
 	res := make([]interface{}, 0)
@@ -60,13 +59,24 @@ func decodeList(bencodedString string) (interface{}, int, error) {
 		if unicode.IsDigit(rune(bencodedString[i])) || bencodedString[i] == 'i' {
 			curr, next, err := decodeStrInt(bencodedString[i:])
 			if err != nil {
-				fmt.Println(err)
+				fmt.Fprintln(os.Stderr, err)
+				return nil, 0, err
 			}
 			res = append(res, curr)
-			i = next
+			i += next
+		} else if bencodedString[i] == 'l' {
+			//handle nested lists recursively
+			curr, next, err := decodeList(bencodedString[i:])
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return nil, 0, err
+			}
+			res = append(res, curr)
+			i += next
+		} else {
+			break
 		}
 	}
-
 	return res, i + 1, nil
 }
 
