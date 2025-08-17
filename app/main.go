@@ -12,7 +12,7 @@ import (
 // Ensures gofmt doesn't remove the "os" encoding/json import (feel free to remove this!)
 var _ = json.Marshal
 
-// Example:
+// this func does the following:
 // - 5:hello -> hello
 // - 10:hello12345 -> hello12345
 func decodeBencode(bencodedString string) (interface{}, error) {
@@ -34,15 +34,28 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 		}
 
 		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
+	} else if bencodedString[0] == 'i' {
+		var end int
+
+		for i := 1; i < len(bencodedString); i ++ {
+			if bencodedString[i] == 'e' {
+				end = i
+				break
+			}
+		}
+
+		res, err := strconv.Atoi(bencodedString[1:end])
+		if err != nil {
+			return "", err
+		}
+
+		return res, nil
 	} else {
 		return "", fmt.Errorf("Only strings are supported at the moment")
 	}
 }
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
-
 	command := os.Args[1]
 
 	if command == "decode" {
