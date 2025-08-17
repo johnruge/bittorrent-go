@@ -80,6 +80,54 @@ func decodeList(bencodedString string) (interface{}, int, error) {
 	return res, i + 1, nil
 }
 
+//this function decodes bencoded dictionary
+func decodeDict(bencodedString string) (interface{}, int, error) {
+	i := 1
+	res := make(map[string]interface{})
+
+	for i < len(bencodedString) {
+		if bencodedString[i] == 'e' {
+			break
+		}
+
+		//decode key (must be a string)
+		if !unicode.IsDigit(rune(bencodedString[i])) {
+			return nil, 0, fmt.Errorf("dictionary key must be a string")
+		}
+
+		key, keyNext, err := decodeStrInt(bencodedString[i:])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return nil, 0, err
+		}
+		i += keyNext
+
+		//decode value
+		var value interface{}
+		var valueNext int
+
+		if unicode.IsDigit(rune(bencodedString[i])) || bencodedString[i] == 'i' {
+			value, valueNext, err = decodeStrInt(bencodedString[i:])
+		} else if bencodedString[i] == 'l' {
+			value, valueNext, err = decodeList(bencodedString[i:])
+		} else if bencodedString[i] == 'd' {
+			value, valueNext, err = decodeDict(bencodedString[i:])
+		} else {
+			return nil, 0, fmt.Errorf("unsupported value type")
+		}
+
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return nil, 0, err
+		}
+
+		res[key.(string)] = value
+		i += valueNext
+	}
+
+	return res, i + 1, nil
+}
+
 func main() {
 	command := os.Args[1]
 
@@ -96,6 +144,14 @@ func main() {
 			fmt.Println(string(jsonOutput))
 		} else if bencodedValue[0] == 'l' {
 			decoded, _, err := decodeList(bencodedValue)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			jsonOutput, _ := json.Marshal(decoded)
+			fmt.Println(string(jsonOutput))
+		} else if bencodedValue[0] == 'd' {
+			decoded, _, err := decodeDict(bencodedValue)
 			if err != nil {
 				fmt.Println(err)
 				return
